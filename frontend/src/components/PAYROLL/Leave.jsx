@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import axios from 'axios';
 import {
   Button,
@@ -21,14 +21,9 @@ const Leave = () => {
     leave_code: '',
     description: '',
     number_hours: '',
-    status: '',
   });
 
   const [editingId, setEditingId] = useState(null);
-
-  useEffect(() => {
-    fetchLeave();
-  }, []);
 
   const fetchLeave = async () => {
     try {
@@ -38,6 +33,10 @@ const Leave = () => {
       console.error('Error fetching leave data', err.message);
     }
   };
+
+  useEffect(() => {
+    fetchLeave();
+  }, []);
 
   const handleChange = (e) => {
     setLeave({
@@ -63,7 +62,8 @@ const Leave = () => {
   };
 
   const handleEdit = (item) => {
-    setLeave(item);
+    const { leave_code, description, number_hours } = item;
+    setLeave({ leave_code, description, number_hours });
     setEditingId(item.id);
   };
 
@@ -86,7 +86,6 @@ const Leave = () => {
       leave_code: '',
       description: '',
       number_hours: '',
-      status: '',
     });
   };
 
@@ -160,26 +159,34 @@ const Leave = () => {
       </Paper>
 
       {/* Data Table */}
-      <TableContainer component={Paper} sx={{ maxHeight: 500, overflow: 'auto' }}>
+      <TableContainer
+        component={Paper}
+        sx={{ maxHeight: 500, overflow: 'auto' }}
+      >
         <Table stickyHeader>
           <TableHead>
             <TableRow style={{ backgroundColor: '#6D2323' }}>
-              <TableCell style={{ color: '#000000', fontWeight: 'bold' }}>No.</TableCell>
-              <TableCell style={{ color: '#000000', fontWeight: 'bold' }}>Leave Code</TableCell>
-              <TableCell style={{ color: '#000000', fontWeight: 'bold' }}>Description</TableCell>
-              <TableCell style={{ color: '#000000', fontWeight: 'bold' }}>Number of Hours</TableCell>
-              <TableCell style={{ color: '#000000', fontWeight: 'bold' }}>Status</TableCell>
-              <TableCell style={{ color: '#000000', fontWeight: 'bold' }}>Actions</TableCell>
+              <TableCell style={{ color: '#000000', fontWeight: 'bold' }}>
+                Leave Code
+              </TableCell>
+              <TableCell style={{ color: '#000000', fontWeight: 'bold' }}>
+                Description
+              </TableCell>
+              <TableCell style={{ color: '#000000', fontWeight: 'bold' }}>
+                Number of Hours
+              </TableCell>
+
+              <TableCell style={{ color: '#000000', fontWeight: 'bold' }}>
+                Actions
+              </TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {data.map((item) => (
               <TableRow key={item.id}>
-                <TableCell>{item.id}</TableCell>
                 <TableCell>{item.leave_code}</TableCell>
                 <TableCell>{item.description}</TableCell>
                 <TableCell>{item.number_hours}</TableCell>
-                <TableCell>{item.status}</TableCell>
                 <TableCell>
                   <Button
                     onClick={() => handleEdit(item)}

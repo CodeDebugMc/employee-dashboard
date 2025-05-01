@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import axios from 'axios';
 import {
   Button,
@@ -70,7 +70,8 @@ const HolidaySuspension = () => {
   };
 
   const handleEdit = (item) => {
-    setHolidayAndSuspension(item);
+    const { description, date, status } = item;
+    setHolidayAndSuspension({ description, date, status });
     setEditingId(item.id);
   };
 
@@ -123,11 +124,7 @@ const HolidaySuspension = () => {
           marginBottom: '24px',
         }}
       >
-        <Box
-          display="flex"
-          flexWrap="wrap"
-          sx={{ marginBottom: 3, gap: 2 }}
-        >
+        <Box display="flex" flexWrap="wrap" sx={{ marginBottom: 3, gap: 2 }}>
           {Object.keys(holidayAndSuspension).map((key) => (
             <TextField
               key={key}

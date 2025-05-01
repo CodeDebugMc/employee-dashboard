@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   BrowserRouter as Router,
   Routes,
@@ -16,16 +16,22 @@ import {
 import axios from 'axios';
 import ProtectedRoute from './components/ProtectedRoute';
 
-
 import Login from './components/Login';
 import Register from './components/Register';
 import Unauthorized from './components/Unauthorized';
 import AllIcons from './components/Page';
 import SettingsForm from './SettingsForm';
 
-
 import Home from './components/Home';
 import Sidebar from './components/Sidebar';
+
+// Leave
+import LeaveForm from './components/LEAVES/LeaveForm';
+import LeaveBalance from './components/LEAVES/LeaveBalance';
+import LeaveHistory from './components/LEAVES/LeaveHistory';
+import AdminAnnouncements from './components/LEAVES/AdminAnnouncement';
+// import EmployeeCarousel from './components/EmployeeCaraousel';
+import AdminAnnouncementForm from './components/AdminAnnouncementForm';
 
 //DASHBOARD
 import PersonalTable from './components/DASHBOARD/PersonTable';
@@ -62,7 +68,6 @@ import HolidaySuspension from './components/PAYROLL/HolidaySuspension';
 import Leave from './components/PAYROLL/Leave';
 import LeaveAssignment from './components/PAYROLL/LeaveAssignment';
 
-
 //FORMS
 import AssessmentClearance from './components/FORMS/AssessmentClearance';
 import Clearance from './components/FORMS/Clearance';
@@ -82,23 +87,15 @@ import SubjectStillToBeTaken from './components/FORMS/SubjectStillToBeTaken';
 import IndividualFacultyLoading from './components/FORMS/IndividualFacultyLoading';
 import HrmsRequestForms from './components/FORMS/HRMSRequestForms';
 
-// PDS 
+// PDS
 import PDS1 from './components/PDS1';
 import PDS2 from './components/PDS2';
 import PDS3 from './components/PDS3';
 import PDS4 from './components/PDS4';
-import { PictureAsPdfOutlined } from '@mui/icons-material';
+// import { PictureAsPdfOutlined } from '@mui/icons-material';
 import ForgotPassword from './components/ForgotPassword';
 
-
-
-
-
-
-
-
 const drawerWidth = 250;
-
 
 function App() {
   const [settings, setSettings] = useState({});
@@ -107,9 +104,8 @@ function App() {
   const [open3, setOpen3] = useState(false);
   const [open4, setOpen4] = useState(false);
   const [open5, setOpen5] = useState(false);
-  const [selectedItem, setSelectedItem] = useState(null);
+  // const [selectedItem, setSelectedItem] = useState(null);
   const location = useLocation();
-
 
   const handleClick = () => setOpen(!open);
   const handleClickAttendance = () => setOpen2(!open2);
@@ -117,8 +113,9 @@ function App() {
   const handleClickForms = () => setOpen4(!open4);
   const handleClickPDSFiles = () => setOpen5(!open5);
 
-  const handleItemClick = (item) => {setSelectedItem(item);};
-
+  // const handleItemClick = (item) => {
+  //   setSelectedItem(item);
+  // };
 
   const fetchSettings = async () => {
     try {
@@ -129,22 +126,19 @@ function App() {
     }
   };
 
-
   useEffect(() => {
     fetchSettings();
   }, []);
 
-
   return (
-      <ThemeProvider
-        theme={createTheme({
-          typography: {
-            fontFamily: 'Poppins, sans-serif',
-            body1: { fontSize: '13px' }, // adjust sidebar fontsize
-          },
-        })}
-      >
-  
+    <ThemeProvider
+      theme={createTheme({
+        typography: {
+          fontFamily: 'Poppins, sans-serif',
+          body1: { fontSize: '13px' }, // adjust sidebar fontsize
+        },
+      })}
+    >
       <Box
         sx={{
           display: 'flex',
@@ -155,7 +149,7 @@ function App() {
       >
         <AppBar
           position="fixed"
-          sx={{ zIndex: 1201, bgcolor:'#6d2323', height: '60px' }}// adjust HEADER
+          sx={{ zIndex: 1201, bgcolor: '#6d2323', height: '60px' }} // adjust HEADER
         >
           <Toolbar>
             {settings.logo_url && (
@@ -171,8 +165,9 @@ function App() {
           </Toolbar>
         </AppBar>
 
-
-        {!['/', '/login', '/Register', '/forgot-password'].includes(location.pathname) && (
+        {!['/', '/login', '/Register', '/forgot-password'].includes(
+          location.pathname
+        ) && (
           <Sidebar
             open={open}
             handleClick={handleClick}
@@ -187,13 +182,12 @@ function App() {
           />
         )}
 
-
         {/* Main Content */}
         <Box
           component="main"
           sx={{
             flexGrow: 1,
-            bgcolor: 'transparent',  // etong kupal nato ang naglalagay ng white background
+            bgcolor: 'transparent', // etong kupal nato ang naglalagay ng white background
             p: 10,
             marginLeft: `${drawerWidth}px`,
             fontFamily: 'Poppins, sans-serif',
@@ -203,11 +197,28 @@ function App() {
           <Routes>
             <Route path="/register" element={<Register />} />
             <Route path="/" element={<Login />} />
-            <Route path='/forgot-password' element={<ForgotPassword />}/>
+            {/* Endpoint for leave management */}
+            <Route path="/leave" element={<LeaveForm />} />
+            <Route path="/leave-balance" element={<LeaveBalance />} />
+            <Route path="/leave-history" element={<LeaveHistory />} />
+            {/* Endpoint for Carousel*/}
+            <Route path="/announcement" element={<AdminAnnouncements />} />
+            {/* <Route
+              path="/announcement-caraousel"
+              element={<EmployeeCarousel />}
+            /> */}
+            <Route
+              path="/announcement-form"
+              element={<AdminAnnouncementForm />}
+            />
+
+            <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route
               path="/home"
               element={
-                <ProtectedRoute allowedRoles={['administrator', 'superadmin', 'staff']}>
+                <ProtectedRoute
+                  allowedRoles={['administrator', 'superadmin', 'staff']}
+                >
                   <Home />
                 </ProtectedRoute>
               }
@@ -217,7 +228,7 @@ function App() {
               path="/children"
               element={
                 <ProtectedRoute allowedRoles={['administrator', 'superadmin']}>
-                  <Children/>
+                  <Children />
                 </ProtectedRoute>
               }
             />
@@ -354,7 +365,6 @@ function App() {
               }
             />
 
-
             <Route
               path="/attendance_module_faculty_40hrs"
               element={
@@ -363,7 +373,6 @@ function App() {
                 </ProtectedRoute>
               }
             />
-
 
             <Route
               path="/attendance_summary"
@@ -423,7 +432,6 @@ function App() {
               }
             />
 
-
             <Route
               path="/payroll-table"
               element={
@@ -432,7 +440,6 @@ function App() {
                 </ProtectedRoute>
               }
             />
-
 
             <Route
               path="/remittance-table"
@@ -443,7 +450,6 @@ function App() {
               }
             />
 
-
             <Route
               path="/item-table"
               element={
@@ -452,7 +458,6 @@ function App() {
                 </ProtectedRoute>
               }
             />
-
 
             <Route
               path="/salary-grade"
@@ -463,7 +468,6 @@ function App() {
               }
             />
 
-
             <Route
               path="/salary-grade-status"
               element={
@@ -472,7 +476,6 @@ function App() {
                 </ProtectedRoute>
               }
             />
-
 
             <Route
               path="/department-table"
@@ -483,7 +486,6 @@ function App() {
               }
             />
 
-
             <Route
               path="/department-assignment"
               element={
@@ -492,7 +494,6 @@ function App() {
                 </ProtectedRoute>
               }
             />
-
 
             <Route
               path="/leave-table"
@@ -503,7 +504,6 @@ function App() {
               }
             />
 
-
             <Route
               path="/leave-assignment"
               element={
@@ -513,7 +513,6 @@ function App() {
               }
             />
 
-
             <Route
               path="/holiday-suspension"
               element={
@@ -522,7 +521,6 @@ function App() {
                 </ProtectedRoute>
               }
             />
-
 
             <Route
               path="/assessment-clearance"
@@ -548,7 +546,6 @@ function App() {
                 </ProtectedRoute>
               }
             />
-
 
             <Route
               path="/faculty-clearance"
@@ -662,13 +659,10 @@ function App() {
                 </ProtectedRoute>
               }
             />
-            
-            
 
             <Route path="/unauthorized" element={<Unauthorized />} />
           </Routes>
         </Box>
-
 
         {/* Footer */}
         <Box
@@ -683,7 +677,7 @@ function App() {
             color: 'white',
             textAlign: 'center',
             padding: '20px',
-            height: '10px', 
+            height: '10px',
           }}
         >
           <Typography variant="body2">
@@ -695,7 +689,6 @@ function App() {
   );
 }
 
-
 export default function WrappedApp() {
   return (
     <Router>
@@ -703,6 +696,3 @@ export default function WrappedApp() {
     </Router>
   );
 }
-
-
-
