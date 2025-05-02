@@ -1850,7 +1850,21 @@ app.get('/api/leaves/:id', (req, res) => {
   });
 });
 
-// Manager approval
+// API for Leave Approval
+app.get('/api/leaves/pending', (req, res) => {
+  const query = `
+    SELECT l.*, e.name AS employee_name
+    FROM leaves l
+    JOIN employees e ON l.employee_id = e.id
+    WHERE l.status IS NULL
+  `;
+  db.query(query, (err, results) => {
+    if (err) return res.status(500).json({ message: 'Error fetching leaves' });
+    res.json(results);
+  });
+});
+
+// For approve and rejected Leave approval
 app.put('/api/leaves/:id/status', (req, res) => {
   const { id } = req.params;
   const { status, manager_id } = req.body;
@@ -1859,6 +1873,29 @@ app.put('/api/leaves/:id/status', (req, res) => {
   db.query(query, [status, manager_id, id], (err) => {
     if (err) return res.status(500).json({ message: 'Error updating status' });
     res.json({ message: 'Leave status updated' });
+  });
+});
+
+app.get('/api/leaves/approved', (req, res) => {
+  const query = `
+    SELECT 
+      l.id AS leave_id,
+      l.employee_id,
+      l.leave_code,
+      l.date,
+      l.status,
+      l.requested_at,
+      u.username AS approved_by
+    FROM leaves l
+    LEFT JOIN users u ON l.manager_id = u.id
+    WHERE l.status = '1'
+  `;
+  db.query(query, (err, results) => {
+    if (err)
+      return res
+        .status(500)
+        .json({ message: 'Error fetching approved leaves' });
+    res.json(results);
   });
 });
 
@@ -2053,6 +2090,25 @@ app.post(
 // Add this once in your server setup
 app.use('/poster', express.static('poster'));
 app.use('/poster', express.static(__dirname + '/poster')); // This is also valid
+
+// Attendance Tracking for Employee Dashboard starts here.
+app.get('/api/attendance/recent/:id', (req, res) => {
+  const { id } = req.params;
+  const query = `
+    SELECT date, Day, timeIN, breaktimeIN, breaktimeOUT, timeOUT
+    FROM attendancerecord
+    WHERE personID = ?
+    ORDER BY date DESC
+    LIMIT 5
+  `;
+  db.query(query, [id], (err, results) => {
+    if (err)
+      return res
+        .status(500)
+        .json({ message: 'Error fetching attendance records' });
+    res.json(results);
+  });
+});
 
 //=================
 // LEAVE END HERE

@@ -1,8 +1,18 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Container, Box, Typography, Paper, Button } from '@mui/material';
-import Carousel from 'react-material-ui-carousel';
-import LeaveBalance from './LEAVES/LeaveBalance';
+import {
+  Container,
+  Box,
+  Typography,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+} from '@mui/material';
+import Carousel from 'react-material-ui-carousel'; // Assuming you're using this already
 
 const Home = () => {
   const [userData, setUserData] = useState({
@@ -11,6 +21,7 @@ const Home = () => {
     employeeNumber: '',
   });
   const [announcements, setAnnouncements] = useState([]);
+  const [attendance, setAttendance] = useState([]);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -30,122 +41,142 @@ const Home = () => {
   }, []);
 
   useEffect(() => {
-    const fetchAnnouncements = async () => {
+    if (!userData.employeeNumber) return;
+
+    const fetchAttendance = async () => {
       try {
-        const response = await axios.get(
-          'http://localhost:5000/api/announcements'
+        const res = await axios.get(
+          `http://localhost:5000/api/attendance/recent/${userData.employeeNumber}`
         );
-        setAnnouncements(response.data);
-      } catch (error) {
-        console.error('Error fetching announcements:', error);
+        setAttendance(res.data);
+      } catch (err) {
+        console.error('Error fetching attendance:', err);
       }
     };
 
-    fetchAnnouncements();
+    fetchAttendance();
+  }, [userData.employeeNumber]);
+
+  useEffect(() => {
+    axios
+      .get('http://localhost:5000/api/announcements')
+      .then((res) => setAnnouncements(res.data))
+      .catch((err) => console.error('Error fetching announcements:', err));
   }, []);
 
-  {
-    userData.employeeNumber && (
-      <LeaveBalance employeeId={userData.employeeNumber} />
-    );
-  }
+  // Calculate the timeIN and timeOUT
+  const calculateHoursWorked = (timeIN, timeOUT) => {
+    if (!timeIN || !timeOUT) return 'N/A';
+
+    const parseTime = (timeStr) => {
+      const [time, modifier] = timeStr.split(' ');
+      let [hours, minutes, seconds] = time.split(':').map(Number);
+
+      if (modifier === 'PM' && hours < 12) hours += 12;
+      if (modifier === 'AM' && hours === 12) hours = 0;
+
+      return new Date(1970, 0, 1, hours, minutes, seconds);
+    };
+
+    const inTime = parseTime(timeIN);
+    const outTime = parseTime(timeOUT);
+    const diffMs = outTime - inTime;
+
+    const hours = Math.floor(diffMs / (1000 * 60 * 60));
+    const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+
+    return `${hours}h ${minutes}m`;
+  };
 
   return (
-    <Container maxWidth="xl">
-      {/* Welcome Banner */}
-      <Box
-        sx={{
-          textAlign: 'center',
-          color: '#400000',
-          mt: -7,
-          mb: -4,
-          fontSize: 13,
-        }}
-      >
-        <h1>👋 Welcome back, {userData.username || 'Guest'}!</h1>
-        {/* <h2>Employee ID: {userData.employeeNumber}</h2> */}
-        {/* <h2>Role: {userData.role}</h2> */}
+    <Container>
+      {/* Welcome Header */}
+      <Box textAlign="center" mt={2} color="#400000">
+        <Typography variant="h4">
+          Welcome, {userData.username || 'Guest'}!
+        </Typography>
+        <Typography variant="subtitle1">
+          Employee ID: {userData.employeeNumber}
+        </Typography>
+        <Typography variant="subtitle1">Role: {userData.role}</Typography>
       </Box>
 
-      {/* Carousel */}
-      {announcements.length > 0 ? (
-        <Box sx={{ mt: 4 }}>
-          <Carousel
-            navButtonsAlwaysVisible
-            autoPlay
-            animation="slide"
-            interval={7000}
-            fullHeightHover={false}
-            indicators
-          >
-            {announcements.map((item, index) => (
-              <AnnouncementItem key={index} item={item} />
-            ))}
-          </Carousel>
-        </Box>
-      ) : (
-        <Typography sx={{ mt: 4, textAlign: 'center' }}>
-          No announcements to display.
+      {/* Announcement Carousel */}
+      <Box mt={4}>
+        <Carousel>
+          {announcements.map((item, i) => (
+            <Paper key={i} sx={{ p: 3 }}>
+              <Typography variant="h5">{item.title}</Typography>
+              <Typography>{item.message}</Typography>
+              {item.button_text && item.button_link && (
+                <Box mt={2}>
+                  <a
+                    href={item.button_link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      textDecoration: 'none',
+                      padding: '8px 16px',
+                      border: '1px solid #1976d2',
+                      borderRadius: '4px',
+                      color: '#1976d2',
+                      fontWeight: 'bold',
+                      display: 'inline-block',
+                    }}
+                  >
+                    {item.button_text}
+                  </a>
+                </Box>
+              )}
+            </Paper>
+          ))}
+        </Carousel>
+      </Box>
+
+      {/* Attendance Section */}
+      <Box mt={5}>
+        <Typography variant="h6" gutterBottom>
+          Recent Attendance
         </Typography>
-      )}
+        <TableContainer component={Paper}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>
+                  <strong>Date</strong>
+                </TableCell>
+                <TableCell>
+                  <strong>Day</strong>
+                </TableCell>
+                <TableCell>
+                  <strong>Time In</strong>
+                </TableCell>
+                <TableCell>
+                  <strong>Time Out</strong>
+                </TableCell>
+                <TableCell>
+                  <strong>Hours Worked</strong>
+                </TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {attendance.map((record, index) => (
+                <TableRow key={index}>
+                  <TableCell>{record.date}</TableCell>
+                  <TableCell>{record.Day}</TableCell>
+                  <TableCell>{record.timeIN || 'N/A'}</TableCell>
+                  <TableCell>{record.timeOUT || 'N/A'}</TableCell>
+                  <TableCell>
+                    {calculateHoursWorked(record.timeIN, record.timeOUT)}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </Box>
     </Container>
   );
 };
-
-const AnnouncementItem = ({ item }) => (
-  <Paper
-    elevation={3}
-    sx={{
-      display: 'flex',
-      alignItems: 'center',
-      p: 4,
-      m: 2,
-      backgroundColor: '#f5f5f5',
-      minHeight: 300,
-    }}
-  >
-    {item.image && (
-      <img
-        src={`http://localhost:5000${item.image}`}
-        alt={item.title}
-        style={{
-          maxWidth: '40%',
-          maxHeight: '250px',
-          height: 'auto',
-          marginRight: 24,
-          borderRadius: 8,
-          objectFit: 'cover',
-        }}
-      />
-    )}
-    <Box sx={{ textAlign: 'left', flex: 1 }}>
-      <Typography variant="h5" gutterBottom>
-        {item.title}
-      </Typography>
-      <Typography variant="body1" gutterBottom>
-        {item.message}
-      </Typography>
-      {item.button_text && item.button_link && (
-        <Button
-          variant="outlined"
-          color="primary"
-          href={item.button_link}
-          target="_blank"
-          sx={{
-            mt: 2,
-            transition: 'all 0.3s ease',
-            '&:hover': {
-              backgroundColor: 'primary.main',
-              color: '#fff',
-              borderColor: 'primary.main',
-            },
-          }}
-        >
-          {item.button_text}
-        </Button>
-      )}
-    </Box>
-  </Paper>
-);
 
 export default Home;
