@@ -27,6 +27,7 @@ const LeaveApproval = () => {
   const fetchPendingLeaves = async () => {
     try {
       const res = await axios.get('http://localhost:5000/api/leaves/pending');
+      console.log(res.data); // Log to check the response from the API
       setPendingLeaves(res.data);
     } catch (err) {
       console.error('Error fetching pending leaves:', err);

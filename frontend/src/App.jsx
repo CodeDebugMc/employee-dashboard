@@ -34,6 +34,10 @@ import AdminAnnouncements from './components/LEAVES/AdminAnnouncement';
 // import EmployeeCarousel from './components/EmployeeCaraousel';
 import AdminAnnouncementForm from './components/AdminAnnouncementForm';
 
+// New Carousel
+import PostPlatform from './components/PostPlatform';
+import PostCarousel from './components/PostCarousel';
+
 //DASHBOARD
 import PersonalTable from './components/DASHBOARD/PersonTable';
 import Children from './components/DASHBOARD/Children';
@@ -214,6 +218,9 @@ function App() {
               path="/announcement-form"
               element={<AdminAnnouncementForm />}
             />
+            {/* Endpoint for New Carousel*/}
+            <Route path="/post-platform" element={<PostPlatform />} />
+            <Route path="/post-carousel" element={<PostCarousel />} />
 
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route

@@ -45,6 +45,7 @@ app.use('/WorkExperienceRoute', WorkExperienceRoute);
 app.use('/OtherInfo', OtherInformation);
 app.use('/allData', AllData);
 app.use('/attendance', Attendance);
+app.use('/poster', express.static('poster'));
 
 //MYSQL CONNECTION
 const db = mysql.createConnection({
@@ -218,7 +219,7 @@ app.delete('/learning_and_development_table/:id', (req, res) => {
 });
 
 // File uploads
-const upload = multer({ dest: 'uploads/' });
+
 // Convert Excel date to normalized UTC date
 function excelDateToUTCDate(excelDate) {
   const date = new Date((excelDate - 25569) * 86400 * 1000);
@@ -227,85 +228,106 @@ function excelDateToUTCDate(excelDate) {
   );
 }
 
-app.post(
-  '/upload_learning_and_development_table',
-  upload.single('file'),
-  (req, res) => {
-    if (!req.file) {
-      return res.status(400).json({ error: 'No file uploaded' });
-    }
+// New carousel for employee dashboard
+// app.post(
+//   '/upload_learning_and_development_table',
+//   upload1.single('file'),
+//   (req, res) => {
+//     if (!req.file) {
+//       return res.status(400).json({ error: 'No file uploaded' });
+//     }
 
-    try {
-      // Read the uploaded XLS file
-      const workbook = xlsx.readFile(req.file.path);
-      const sheet_name = workbook.SheetNames[0];
-      const sheet = xlsx.utils.sheet_to_json(workbook.Sheets[sheet_name]);
+//     try {
+//       // Read the uploaded XLS file
+//       const workbook = xlsx.readFile(req.file.path);
+//       const sheet_name = workbook.SheetNames[0];
+//       const sheet = xlsx.utils.sheet_to_json(workbook.Sheets[sheet_name]);
 
-      // Log the uploaded data for troubleshooting
-      console.log('Uploaded employee info data:', sheet);
+//       // Log the uploaded data for troubleshooting
+//       console.log('Uploaded employee info data:', sheet);
 
-      // Insert data into MySQL
-      sheet.forEach((row) => {
-        const titleOfProgram = row.titleOfProgram;
-        const dateFrom = excelDateToUTCDate(row.dateFrom);
-        const formattedDateFrom = dateFrom.toISOString().split('T')[0];
-        const dateTo = excelDateToUTCDate(row.dateTo);
-        const formattedDateTo = dateTo.toISOString().split('T')[0];
-        const numberOfHours = row.numberOfHours;
-        const typeOfLearningDevelopment = row.typeOfLearningDevelopment;
-        const conductedSponsored = row.conductedSponsored;
+//       // Insert data into MySQL
+//       sheet.forEach((row) => {
+//         const titleOfProgram = row.titleOfProgram;
+//         const dateFrom = excelDateToUTCDate(row.dateFrom);
+//         const formattedDateFrom = dateFrom.toISOString().split('T')[0];
+//         const dateTo = excelDateToUTCDate(row.dateTo);
+//         const formattedDateTo = dateTo.toISOString().split('T')[0];
+//         const numberOfHours = row.numberOfHours;
+//         const typeOfLearningDevelopment = row.typeOfLearningDevelopment;
+//         const conductedSponsored = row.conductedSponsored;
 
-        const query =
-          'INSERT INTO learning_and_development_table (titleOfProgram, dateFrom, dateTo, numberOfHours, typeOfLearningDevelopment, conductedSponsored) VALUES (?, ?, ?, ?, ?, ?)';
-        db.query(
-          query,
-          [
-            titleOfProgram,
-            formattedDateFrom,
-            formattedDateTo,
-            numberOfHours,
-            typeOfLearningDevelopment,
-            conductedSponsored,
-          ],
-          (err, result) => {
-            if (err) {
-              console.error('Error inserting data into the table', err);
-              return;
-            }
-            console.log('Data inserted into the table successfully:', result);
-          }
-        );
-      });
+//         const query =
+//           'INSERT INTO learning_and_development_table (titleOfProgram, dateFrom, dateTo, numberOfHours, typeOfLearningDevelopment, conductedSponsored) VALUES (?, ?, ?, ?, ?, ?)';
+//         db.query(
+//           query,
+//           [
+//             titleOfProgram,
+//             formattedDateFrom,
+//             formattedDateTo,
+//             numberOfHours,
+//             typeOfLearningDevelopment,
+//             conductedSponsored,
+//           ],
+//           (err, result) => {
+//             if (err) {
+//               console.error('Error inserting data into the table', err);
+//               return;
+//             }
+//             console.log('Data inserted into the table successfully:', result);
+//           }
+//         );
+//       });
 
-      // Send response after insertion
-      res.json({
-        message: 'Excel file uploaded and data inserted successfully',
-      });
-    } catch (error) {
-      console.error('Error processing uploaded XLS file:', error);
-      res.status(500).json({ error: 'Error processing uploaded XLS file' });
-    } finally {
-      // Delete the uploaded file to save space on the server
-      fs.unlink(req.file.path, (err) => {
-        if (err) {
-          console.error('Error deleting uploaded file:', err);
-        } else {
-          console.log('Uploaded excel file deleted');
-        }
-      });
-    }
-  }
-);
+//       // Send response after insertion
+//       res.json({
+//         message: 'Excel file uploaded and data inserted successfully',
+//       });
+//     } catch (error) {
+//       console.error('Error processing uploaded XLS file:', error);
+//       res.status(500).json({ error: 'Error processing uploaded XLS file' });
+//     } finally {
+//       // Delete the uploaded file to save space on the server
+//       fs.unlink(req.file.path, (err) => {
+//         if (err) {
+//           console.error('Error deleting uploaded file:', err);
+//         } else {
+//           console.log('Uploaded excel file deleted');
+//         }
+//       });
+//     }
+//   }
+// );
 
+// Banner start here.
 // File upload config
-const storage = multer.diskStorage({
-  destination: './uploads/', //BAgo
-  filename: (req, file, cb) => {
-    cb(null, Date.now() + path.extname(file.originalname));
-  },
+const storageForPoster = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, 'poster/'),
+  filename: (req, file, cb) =>
+    cb(null, Date.now() + path.extname(file.originalname)),
+});
+const upload = multer({ storage: storageForPoster });
+
+app.post('/api/posts', upload.single('banner'), (req, res) => {
+  const { title, content } = req.body;
+  const banner = req.file.filename;
+
+  db.query(
+    'INSERT INTO poster (title, content, banner) VALUES (?, ?, ?)',
+    [title, content, banner],
+    (err) => {
+      if (err) return res.status(500).json({ error: err });
+      res.status(201).json({ message: 'Post created successfully' });
+    }
+  );
 });
 
-const upload1 = multer({ storage });
+app.get('/api/posts', (_, res) => {
+  db.query('SELECT * FROM poster ORDER BY id DESC', (err, results) => {
+    if (err) return res.status(500).json({ error: err });
+    res.json(results);
+  });
+});
 
 // Get settings
 app.get('/api/settings', (req, res) => {
@@ -329,8 +351,16 @@ const deleteOldLogo = (logoUrl) => {
   });
 };
 
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, 'uploads/'),
+  filename: (req, file, cb) =>
+    cb(null, Date.now() + path.extname(file.originalname)),
+});
+
+const companyLogoUpload = multer({ storage });
+
 // Update settings
-app.post('/api/settings', upload1.single('logo'), (req, res) => {
+app.post('/api/settings', companyLogoUpload.single('logo'), (req, res) => {
   const companyName = req.body.company_name || '';
   const headerColor = req.body.header_color || '#ffffff';
   const footerText = req.body.footer_text || '';
@@ -1853,10 +1883,8 @@ app.get('/api/leaves/:id', (req, res) => {
 // API for Leave Approval
 app.get('/api/leaves/pending', (req, res) => {
   const query = `
-    SELECT l.*, e.name AS employee_name
-    FROM leaves l
-    JOIN employees e ON l.employee_id = e.id
-    WHERE l.status IS NULL
+    SELECT *
+    FROM leaves
   `;
   db.query(query, (err, results) => {
     if (err) return res.status(500).json({ message: 'Error fetching leaves' });
@@ -2005,91 +2033,6 @@ app.get('/api/leave-balance/:id', (req, res) => {
     res.json(formatted);
   });
 });
-
-//Caraousel Announcement
-// Get all announcements
-app.get('/api/announcements', (req, res) => {
-  const query = `SELECT * FROM announcements ORDER BY created_at DESC`;
-  db.query(query, (err, results) => {
-    if (err) return res.status(500).json({ message: 'DB error' });
-    res.json(results);
-  });
-});
-
-// Create a new announcement
-app.post('/api/announcements', (req, res) => {
-  const { title, message, button_text, button_link } = req.body;
-  const query = `
-    INSERT INTO announcements (title, message, button_text, button_link)
-    VALUES (?, ?, ?, ?)
-  `;
-  db.query(query, [title, message, button_text, button_link], (err, result) => {
-    if (err) return res.status(500).json({ message: 'Insert failed' });
-    res.status(201).json({ id: result.insertId });
-  });
-});
-
-// Update announcement
-app.put('/api/announcements/:id', (req, res) => {
-  const { id } = req.params;
-  const { title, message, button_text, button_link } = req.body;
-  const query = `
-    UPDATE announcements SET title=?, message=?, button_text=?, button_link=?
-    WHERE id=?
-  `;
-  db.query(query, [title, message, button_text, button_link, id], (err) => {
-    if (err) return res.status(500).json({ message: 'Update failed' });
-    res.status(200).json({ message: 'Announcement updated' });
-  });
-});
-
-// Delete announcement
-app.delete('/api/announcements/:id', (req, res) => {
-  const { id } = req.params;
-  db.query('DELETE FROM announcements WHERE id = ?', [id], (err) => {
-    if (err) return res.status(500).json({ message: 'Delete failed' });
-    res.status(200).json({ message: 'Announcement deleted' });
-  });
-});
-
-// Set up multer storage
-const storageForPoster = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, 'poster/'); // make sure this folder exists
-  },
-  filename: function (req, file, cb) {
-    const uniqueName = Date.now() + '-' + file.originalname;
-    cb(null, uniqueName);
-  },
-});
-
-const uploadForPoster = multer({ storageForPoster });
-
-app.post(
-  '/api/announcements',
-  uploadForPoster.single('image'),
-  async (req, res) => {
-    try {
-      const { title, message, button_text, button_link } = req.body;
-      const image = req.file ? `/poster/${req.file.filename}` : null;
-
-      // Save to DB logic here
-      await db.query(
-        `INSERT INTO announcements (title, message, button_text, button_link, image)
-       VALUES (?, ?, ?, ?, ?)`,
-        [title, message, button_text, button_link, image]
-      );
-
-      res.status(201).json({ message: 'Announcement created' });
-    } catch (err) {
-      console.error(err);
-      res.status(500).json({ error: 'Server failed to create announcement' });
-    }
-  }
-);
-// Add this once in your server setup
-app.use('/poster', express.static('poster'));
-app.use('/poster', express.static(__dirname + '/poster')); // This is also valid
 
 // Attendance Tracking for Employee Dashboard starts here.
 app.get('/api/attendance/recent/:id', (req, res) => {
