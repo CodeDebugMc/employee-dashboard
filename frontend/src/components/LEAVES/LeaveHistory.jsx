@@ -1,95 +1,100 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
+import {
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Typography,
+  Alert,
+  CircularProgress,
+  TablePagination,
+} from '@mui/material';
 import axios from 'axios';
-import { Button, Typography } from '@mui/material';
-import { Card, CardContent } from '@mui/material'; // Use MUI's Card directly if "@/components/ui/card" is a problem
+import dayjs from 'dayjs';
 
 const LeaveHistory = () => {
-  const [leaveHistory, setLeaveHistory] = useState([]);
-  const [page, setPage] = useState(1);
-  const limit = 10; // number of records per page
-  const [isLastPage, setIsLastPage] = useState(false); // 👈 NEW
-
-  const fetchHistory = async (currentPage) => {
-    try {
-      const res = await axios.get(
-        `http://localhost:5000/api/leave-history?page=${currentPage}&limit=${limit}`
-      );
-      setLeaveHistory(res.data);
-      setIsLastPage(res.data.length < limit); // 👈 If fewer than 10 records, we hit the last page
-    } catch (error) {
-      console.error('Error fetching leave history:', error);
-    }
-  };
+  const [leaves, setLeaves] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const [page, setPage] = useState(0);
+  const rowsPerPage = 10;
 
   useEffect(() => {
-    fetchHistory(page);
-  }, [page]);
+    axios
+      .get('http://localhost:5000/api/leaves')
+      .then((res) => {
+        setLeaves(res.data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error(err);
+        setError(true);
+        setLoading(false);
+      });
+  }, []);
 
-  const handlePrevPage = () => {
-    if (page > 1) {
-      setPage(page - 1);
-    }
+  const handleChangePage = (event, newPage) => {
+    setPage(newPage);
   };
 
-  const handleNextPage = () => {
-    if (!isLastPage) {
-      setPage(page + 1);
-    }
-  };
+  if (loading)
+    return <CircularProgress sx={{ display: 'block', m: '2rem auto' }} />;
+  if (error)
+    return <Alert severity="error">Failed to load leave requests.</Alert>;
+
+  const paginatedData = leaves.slice(
+    page * rowsPerPage,
+    page * rowsPerPage + rowsPerPage
+  );
 
   return (
-    <div>
-      <Typography variant="h4" gutterBottom>
-        Leave History (Page {page})
+    <Paper sx={{ p: 3, mt: 4 }}>
+      <Typography variant="h6" gutterBottom>
+        Leave History
       </Typography>
+      <TableContainer>
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell>Employee #</TableCell>
+              <TableCell>Username</TableCell>
+              <TableCell>Leave Type</TableCell>
+              <TableCell>Date</TableCell>
+              <TableCell>Status</TableCell>
+              <TableCell>Requested At</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {paginatedData.map((leave) => (
+              <TableRow key={leave.id}>
+                <TableCell>{leave.employeeNumber}</TableCell>
+                <TableCell>{leave.username}</TableCell>
+                <TableCell>{leave.leave_description}</TableCell>
+                <TableCell>
+                  {dayjs(leave.date).format('MMMM D, YYYY')}
+                </TableCell>
+                <TableCell>{leave.status}</TableCell>
+                <TableCell>
+                  {dayjs(leave.created_at).format('MMM D, YYYY h:mm A')}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
 
-      {leaveHistory.length === 0 ? (
-        <Typography>No leave history available.</Typography>
-      ) : (
-        leaveHistory.map((leave) => (
-          <Card key={leave.id} style={{ marginBottom: '10px' }}>
-            <CardContent>
-              <Typography variant="h6">
-                {leave.employee_name} ({leave.employee_email})
-              </Typography>
-              <Typography variant="subtitle1">
-                {leave.leave_description} ({leave.leave_code})
-              </Typography>
-              <Typography variant="body2">Status: {leave.status}</Typography>
-              <Typography variant="caption">
-                Requested at: {new Date(leave.requested_at).toLocaleString()}
-              </Typography>
-            </CardContent>
-          </Card>
-        ))
-      )}
-
-      <div
-        style={{
-          marginTop: '20px',
-          display: 'flex',
-          justifyContent: 'center',
-          gap: '10px',
-        }}
-      >
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={handlePrevPage}
-          disabled={page === 1}
-        >
-          Previous
-        </Button>
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={handleNextPage}
-          disabled={isLastPage}
-        >
-          Next
-        </Button>
-      </div>
-    </div>
+      <TablePagination
+        component="div"
+        count={leaves.length}
+        page={page}
+        onPageChange={handleChangePage}
+        rowsPerPage={rowsPerPage}
+        rowsPerPageOptions={[rowsPerPage]} // Lock to 10 per page
+      />
+    </Paper>
   );
 };
 

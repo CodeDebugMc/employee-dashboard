@@ -25,7 +25,7 @@ const Attendance = require('./dashboardRoutes/Attendance');
 const { error } = require('console');
 
 const app = express();
-
+const PORT = 5000;
 //MIDDLEWARE
 app.use(fileUpload());
 app.use(express.json());
@@ -1807,51 +1807,10 @@ for (let i = 1; i <= 7; i++) {
 }
 
 //=================
-// LEAVE START HERE
+// LEAVE MANAGEMENT START HERE
 //=================
 
-// // Get leave types
-// app.get('/api/leave-types', async (req, res) => {
-//   try {
-//     const [rows] = await db.query('SELECT * FROM leave_table');
-//     res.json(rows);
-//   } catch (err) {
-//     console.error('DB error:', err);
-//     res.status(500).json({ error: 'Database failed' });
-//   }
-// });
-
-// // Apply for leave
-// app.post('/api/leaves/apply', async (req, res) => {
-//   const { employee_id, leave_code, start_date, end_date, reason } = req.body;
-//   await db.query(
-//     `
-//     INSERT INTO apply_leave (employee_id, leave_code, start_date, end_date, reason)
-//     VALUES (?, ?, ?, ?, ?)`,
-//     [employee_id, leave_code, start_date, end_date, reason]
-//   );
-//   res.json({ message: 'Leave request submitted' });
-// });
-
-// // Get leave history for one employee
-// app.get('/api/leaves/:employee_id', async (req, res) => {
-//   const [rows] = await db.query(
-//     `SELECT * FROM apply_leave WHERE employee_id = ? ORDER BY requested_at DESC`,
-//     [req.params.employee_id]
-//   );
-//   res.json(rows);
-// });
-
-// // Update leave status
-// app.put('/api/leaves/:id/status', async (req, res) => {
-//   const { status } = req.body;
-//   await db.query(`UPDATE apply_leave SET status = ? WHERE id = ?`, [
-//     status,
-//     req.params.id,
-//   ]);
-//   res.json({ message: 'Leave status updated' });
-// });
-
+// Leave request form
 // Get leave types
 app.get('/api/leave-types', (req, res) => {
   db.query(
@@ -1864,198 +1823,68 @@ app.get('/api/leave-types', (req, res) => {
   );
 });
 
-// Get leave history for an employee
-app.get('/api/leaves/:id', (req, res) => {
-  const { id } = req.params;
-  const query = `
-    SELECT l.*, lt.description AS leave_description
-    FROM leaves l
-    JOIN leave_table lt ON l.leave_code = lt.leave_code
-    WHERE l.employee_id = ?
-    ORDER BY l.requested_at DESC
-  `;
-  db.query(query, [id], (err, results) => {
-    if (err) return res.status(500).json({ message: 'Error fetching history' });
-    res.json(results);
+app.post('/api/leaves', (req, res) => {
+  const { employee_number, leave_type, date } = req.body;
+
+  const query = `INSERT INTO leaves (employee_number, leave_type, date, status) VALUES (?,?,?,'pending')`;
+
+  db.query(query, [employee_number, leave_type, date], (err, result) => {
+    if (err) return res.status(500).json({ message: 'Error Submitting leave' });
+    res.json({ message: 'Leave submitted', leave_id: result.insertId });
   });
 });
 
-// API for Leave Approval
-app.get('/api/leaves/pending', (req, res) => {
-  const query = `
-    SELECT *
-    FROM leaves
-  `;
-  db.query(query, (err, results) => {
-    if (err) return res.status(500).json({ message: 'Error fetching leaves' });
-    res.json(results);
-  });
-});
+// Leave History List
+// app.get('/api/leaves/history/:employeeNumber', (req, res) => {
+//   const { employeeNumber } = req.params;
 
-// For approve and rejected Leave approval
-app.put('/api/leaves/:id/status', (req, res) => {
-  const { id } = req.params;
-  const { status, manager_id } = req.body;
+//   const query = `
+//   SELECT l.id, l.leave_type, lt.description, l.date, l.status, l.created_at
+//     FROM leaves l
+//     JOIN leave_table lt ON l.leave_type = lt.leave_code
+//     WHERE l.employeeNumber = ?
+//     ORDER BY l.date DESC
+//     `;
 
-  const query = `UPDATE leaves SET status = ?, manager_id = ? WHERE id = ?`;
-  db.query(query, [status, manager_id, id], (err) => {
-    if (err) return res.status(500).json({ message: 'Error updating status' });
-    res.json({ message: 'Leave status updated' });
-  });
-});
+//   db.query(query, [employeeNumber], (err, result) => {
+//     if (err) res.status(500).json({ message: 'Error fetching leave history' });
+//     res.json(result);
+//   });
+// });
 
-app.get('/api/leaves/approved', (req, res) => {
-  const query = `
-    SELECT 
-      l.id AS leave_id,
-      l.employee_id,
-      l.leave_code,
-      l.date,
-      l.status,
-      l.requested_at,
-      u.username AS approved_by
-    FROM leaves l
-    LEFT JOIN users u ON l.manager_id = u.id
-    WHERE l.status = '1'
-  `;
-  db.query(query, (err, results) => {
-    if (err)
-      return res
-        .status(500)
-        .json({ message: 'Error fetching approved leaves' });
-    res.json(results);
-  });
-});
-
-// GET all pending leaves (optional: filter by manager's team later)
+// Leave History List
 app.get('/api/leaves', (req, res) => {
   const query = `
-    SELECT l.*, e.name AS employee_name, lt.description AS leave_description
+    SELECT 
+      l.id,
+      u.employeeNumber,
+      u.username,
+      l.leave_type,
+      lt.description AS leave_description,
+      l.date,
+      l.status,
+      l.created_at
     FROM leaves l
-    JOIN employees e ON l.employee_id = e.id
-    JOIN leave_table lt ON l.leave_code = lt.leave_code
-    WHERE l.status = '0'
-    ORDER BY l.requested_at DESC
+    JOIN users u ON l.employee_number = u.employeeNumber
+    JOIN leave_table lt ON l.leave_type = lt.leave_code
+    ORDER BY l.date DESC
   `;
+
   db.query(query, (err, results) => {
-    if (err) return res.status(500).json({ message: 'Error fetching leaves' });
-    res.json(results);
-  });
-});
-
-// APPLY Leave Backend
-// Create leave request
-app.post('/api/leaves', (req, res) => {
-  const { employee_id, leave_code, date } = req.body;
-
-  const query = `
-    INSERT INTO leaves (employee_id, leave_code, date)
-    VALUES (?, ?, ?)
-  `;
-
-  db.query(query, [employee_id, leave_code, date], (err, result) => {
     if (err) {
-      console.error('Error inserting leave request:', err);
+      console.error('MySQL error:', err); // ✅ log it
       return res
         .status(500)
-        .json({ message: 'Database error', error: err.message });
-    }
-    res
-      .status(201)
-      .json({ message: 'Leave request submitted', id: result.insertId });
-  });
-});
-
-// Get all leave history of employee
-app.get('/api/leave-history', (req, res) => {
-  const page = parseInt(req.query.page) || 1; // Default page 1
-  const limit = parseInt(req.query.limit) || 10; // Default 10 items per page
-  const offset = (page - 1) * limit;
-
-  const query = `
-    SELECT 
-      l.id, 
-      l.leave_code, 
-      lt.description AS leave_description, 
-      l.date, 
-      l.status, 
-      l.requested_at,
-      u.username AS employee_name,
-      u.email AS employee_email
-    FROM leaves l
-    JOIN leave_table lt ON l.leave_code = lt.leave_code
-    JOIN users u ON l.employee_id = u.employeeNumber
-    ORDER BY l.requested_at DESC
-    LIMIT ? OFFSET ?
-  `;
-
-  db.query(query, [limit, offset], (err, results) => {
-    if (err)
-      return res.status(500).json({ message: 'Error fetching leave history' });
-    res.json(results);
-  });
-});
-
-app.get('/api/leave-balance/:id', (req, res) => {
-  const { id } = req.params;
-  const query = `
-    SELECT 
-      lt.leave_code,
-      lt.description,
-      lt.number_hours,
-      COUNT(l.id) * 8 AS hours_taken
-    FROM assigned_leaves al
-    JOIN leave_table lt ON al.leave_code = lt.leave_code
-    LEFT JOIN leaves l 
-      ON lt.leave_code = l.leave_code 
-      AND l.employee_id = ? 
-      AND l.status = '1'
-    WHERE al.employee_id = ?
-    GROUP BY lt.leave_code, lt.description, lt.number_hours
-  `;
-
-  db.query(query, [id, id], (err, results) => {
-    if (err) {
-      console.error(err);
-      return res.status(500).json({ message: 'Error fetching leave balance' });
+        .json({ message: 'Error fetching leave requests', error: err });
     }
 
-    const formatted = results.map((item) => ({
-      ...item,
-      available_hours: parseFloat(item.number_hours),
-      hours_taken: parseFloat(item.hours_taken || 0),
-      hours_remaining:
-        parseFloat(item.number_hours) - parseFloat(item.hours_taken || 0),
-      days_remaining:
-        (parseFloat(item.number_hours) - parseFloat(item.hours_taken || 0)) / 8,
-    }));
-
-    res.json(formatted);
-  });
-});
-
-// Attendance Tracking for Employee Dashboard starts here.
-app.get('/api/attendance/recent/:id', (req, res) => {
-  const { id } = req.params;
-  const query = `
-    SELECT date, Day, timeIN, breaktimeIN, breaktimeOUT, timeOUT
-    FROM attendancerecord
-    WHERE personID = ?
-    ORDER BY date DESC
-    LIMIT 5
-  `;
-  db.query(query, [id], (err, results) => {
-    if (err)
-      return res
-        .status(500)
-        .json({ message: 'Error fetching attendance records' });
     res.json(results);
   });
 });
 
 //=================
-// LEAVE END HERE
+// LEAVE MANAGEMENT END HERE
 //=================
-app.listen(5000, () => {
-  console.log('Server runnning');
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });

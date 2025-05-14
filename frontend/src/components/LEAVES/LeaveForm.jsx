@@ -15,15 +15,33 @@ import axios from 'axios';
 
 const LeaveForm = () => {
   const [formData, setFormData] = useState({
-    employee_id: '',
-    leave_code: '',
+    employee_number: '',
+    leave_type: '',
     date: '',
   });
+
   const [leaveTypes, setLeaveTypes] = useState([]);
   const [message, setMessage] = useState(null);
   const [error, setError] = useState(false);
 
   useEffect(() => {
+    // Optional: Pre-fill employee_id from JWT
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        const decoded = JSON.parse(atob(token.split('.')[1]));
+        if (decoded?.employee_number) {
+          setFormData((prev) => ({
+            ...prev,
+            employee_number: decoded.employee_number,
+          }));
+        }
+      } catch (e) {
+        console.error('Invalid token:', e);
+      }
+    }
+
+    // Load leave types from backend
     axios
       .get('http://localhost:5000/api/leave-types')
       .then((res) => setLeaveTypes(res.data))
@@ -43,27 +61,28 @@ const LeaveForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const { employee_number, leave_type, date } = formData;
 
-    // Basic validation
-    const { employee_id, leave_code, date } = formData;
-    if (!employee_id || !leave_code || !date) {
+    if (!employee_number || !leave_type || !date) {
       setError(true);
       setMessage('Please fill out all fields.');
       return;
     }
 
     try {
-      const res = await axios.post(
-        'http://localhost:5000/api/leaves',
-        formData
-      );
+      const res = await axios.post('http://localhost:5000/api/leaves', {
+        employee_number,
+        leave_type,
+        date,
+      });
+
       setMessage(res.data.message);
       setError(false);
-      setFormData({
-        employee_id: '',
-        leave_code: '',
+      setFormData((prev) => ({
+        ...prev,
+        leave_type: '',
         date: '',
-      });
+      }));
     } catch (err) {
       console.error(err);
       setError(true);
@@ -86,9 +105,9 @@ const LeaveForm = () => {
       <Box component="form" onSubmit={handleSubmit} noValidate>
         <TextField
           fullWidth
-          label="Employee ID"
-          name="employee_id"
-          value={formData.employee_id}
+          label="Employee#"
+          name="employee_number"
+          value={formData.employee_number}
           onChange={handleChange}
           type="number"
           required
@@ -98,8 +117,8 @@ const LeaveForm = () => {
         <FormControl fullWidth required sx={{ mb: 2 }}>
           <InputLabel>Leave Type</InputLabel>
           <Select
-            name="leave_code"
-            value={formData.leave_code}
+            name="leave_type"
+            value={formData.leave_type}
             label="Leave Type"
             onChange={handleChange}
           >
