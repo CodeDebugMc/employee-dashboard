@@ -1823,6 +1823,7 @@ app.get('/api/leave-types', (req, res) => {
   );
 });
 
+// Apply for employee leave API
 app.post('/api/leaves', (req, res) => {
   const { employee_number, leave_type, date } = req.body;
 
@@ -1852,7 +1853,7 @@ app.post('/api/leaves', (req, res) => {
 //   });
 // });
 
-// Leave History List
+// Get all leave history list
 app.get('/api/leaves', (req, res) => {
   const query = `
     SELECT 
@@ -1880,6 +1881,65 @@ app.get('/api/leaves', (req, res) => {
 
     res.json(results);
   });
+});
+
+// Get the leave request by employee
+app.get('/api/leaves/history/:employeeNumber', (req, res) => {
+  const { employeeNumber } = req.params;
+  const query = `
+    SELECT l.id, l.leave_type, lt.description, l.date, l.status, l.created_at
+    FROM leaves l
+    JOIN leave_table lt ON l.leave_type = lt.leave_code
+    WHERE l.employee_number = ?
+    ORDER BY l.date DESC
+  `;
+
+  db.query(query, [employeeNumber], (err, results) => {
+    if (err)
+      return res.status(500).json({ message: 'Error fetching leave history' });
+    res.json(results);
+  });
+});
+
+// Update the leave request by employee
+app.put('/api/leaves/:id', async (req, res) => {
+  const { id } = req.params;
+  const { leave_type, date } = req.body;
+
+  try {
+    const result = db.query(
+      'UPDATE leaves SET leave_type = ?, date = ? WHERE id = ? AND status = "pending"',
+      [leave_type, date, id]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: 'Leave request not found' });
+    }
+    res.json({ message: 'Leave request updated' });
+  } catch (e) {
+    console.error('Database update error', e);
+    res.status(500).json({ message: 'Internal Server Error' });
+  }
+});
+
+// Delete the leave request by employee
+app.delete('/api/leaves/:id', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const result = db.query(
+      'DELETE FROM leaves WHERE id = ? AND status = "pending"',
+      [id]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: 'Leave request not found' });
+    }
+    res.json({ message: 'Leave deleted successfully' });
+  } catch (e) {
+    console.error('Database delete error', e);
+    res.status(500).json({ message: 'Internal server error' });
+  }
 });
 
 //=================

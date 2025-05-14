@@ -33,7 +33,8 @@ import LeaveApproval from './components/LEAVES/LeaveApproval';
 import AdminAnnouncements from './components/LEAVES/AdminAnnouncement';
 // import EmployeeCarousel from './components/EmployeeCaraousel';
 import AdminAnnouncementForm from './components/AdminAnnouncementForm';
-
+// Leave for Employee
+import LeaveHistoryEmployee from './components/LEAVES/LeaveHistoryEmployee';
 // New Carousel
 import PostPlatform from './components/PostPlatform';
 import PostCarousel from './components/PostCarousel';
@@ -207,6 +208,7 @@ function App() {
             <Route path="/leave-balance" element={<LeaveBalance />} />
             <Route path="/leave-history" element={<LeaveHistory />} />
             <Route path="/leave-approval" element={<LeaveApproval />} />
+            <Route path="/leave-employee" element={<LeaveHistoryEmployee />} />
 
             {/* Endpoint for Carousel*/}
             <Route path="/announcement" element={<AdminAnnouncements />} />
