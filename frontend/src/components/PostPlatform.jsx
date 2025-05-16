@@ -21,8 +21,13 @@ export default function PostPlatform() {
     data.append('banner', form.banner);
 
     try {
-      await axios.post('http://localhost:5000/api/posts', data);
+      await axios.post('http://localhost:5000/api/poster', data);
       alert('Post submitted!');
+      console.log('Submitting:', {
+        title: form.title,
+        content: form.content,
+        banner: form.banner,
+      });
     } catch (err) {
       console.error(err);
     }
@@ -30,7 +35,12 @@ export default function PostPlatform() {
 
   return (
     <Container maxWidth="sm">
-      <Box component="form" onSubmit={handleSubmit} sx={{ mt: 4 }}>
+      <Box
+        component="form"
+        onSubmit={handleSubmit}
+        sx={{ mt: 4 }}
+        encType="multipart/form-data"
+      >
         <Typography variant="h4" gutterBottom>
           New Post
         </Typography>
@@ -52,7 +62,13 @@ export default function PostPlatform() {
         />
         <Button variant="contained" component="label">
           Upload Banner
-          <input hidden type="file" onChange={handleFileChange} />
+          <input
+            hidden
+            type="file"
+            name="banner"
+            onChange={handleFileChange}
+          />{' '}
+          {/* 'hidden' just to check it the file submit successfully */}
         </Button>
         <Box mt={2}>
           <Button type="submit" variant="contained" fullWidth>

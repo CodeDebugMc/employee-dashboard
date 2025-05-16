@@ -35,6 +35,9 @@ app.use(cors());
 app.use(bodyparser.json());
 app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static('uploads')); // BAgo
+app.use('/poster', express.static('poster'));
+app.use('/posterImg', express.static('posterImg'));
+
 app.use('/ChildrenRoute', childrenRouter);
 app.use('/VoluntaryRoute', VoluntaryWork);
 app.use('/eligibilityRoute', EligibilityRoute);
@@ -45,7 +48,6 @@ app.use('/WorkExperienceRoute', WorkExperienceRoute);
 app.use('/OtherInfo', OtherInformation);
 app.use('/allData', AllData);
 app.use('/attendance', Attendance);
-app.use('/poster', express.static('poster'));
 
 //MYSQL CONNECTION
 const db = mysql.createConnection({
@@ -306,11 +308,13 @@ const storageForPoster = multer.diskStorage({
   filename: (req, file, cb) =>
     cb(null, Date.now() + path.extname(file.originalname)),
 });
-const upload = multer({ storage: storageForPoster });
+const uploadForPoster = multer({ storage: storageForPoster });
 
-app.post('/api/posts', upload.single('banner'), (req, res) => {
+app.post('/api/poster', uploadForPoster.single('banner'), (req, res) => {
   const { title, content } = req.body;
   const banner = req.file.filename;
+
+  if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
 
   db.query(
     'INSERT INTO poster (title, content, banner) VALUES (?, ?, ?)',
@@ -322,7 +326,7 @@ app.post('/api/posts', upload.single('banner'), (req, res) => {
   );
 });
 
-app.get('/api/posts', (_, res) => {
+app.get('/api/poster', (_, res) => {
   db.query('SELECT * FROM poster ORDER BY id DESC', (err, results) => {
     if (err) return res.status(500).json({ error: err });
     res.json(results);
@@ -1866,7 +1870,7 @@ app.get('/api/leaves', (req, res) => {
       l.status,
       l.created_at
     FROM leaves l
-    JOIN users u ON l.employee_number = u.employeeNumber
+    JOIN users u ON l.employee_number = u.employee_number
     JOIN leave_table lt ON l.leave_type = lt.leave_code
     ORDER BY l.date DESC
   `;
@@ -1942,6 +1946,53 @@ app.delete('/api/leaves/:id', async (req, res) => {
   }
 });
 
+// 🚧
+// Get all pending leaves for Approval of Admin/Manager
+app.get('/api/leaves/pending', async (req, res) => {
+  try {
+    const query = `
+    SELECT l.id, l.employee_number, l.leave_type, l.date, l.status, l.created_at,
+           lt.description AS leave_description,
+           e.username
+    FROM leaves l
+    JOIN leave_table lt ON l.leave_type = lt.leave_code
+    JOIN users u ON l.employee_number = u.employee_number
+    WHERE l.status = 'pending'
+    ORDER BY l.created_at DESC
+  `;
+    db.query(query, (err, result) => {
+      res.json(result);
+    });
+  } catch (e) {
+    console.error('Database Query Failed', e);
+    res.status(500).json({ message: 'Internal Server Error' });
+  }
+});
+
+// Update Leave status either (approved or rejected)
+app.put('/api/leaves/status/:id', async (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+
+  if (!['0', '1'].includes(status)) {
+    return res.status(400).json({ message: 'Invalid status value' });
+  }
+
+  const sql = `UPDATE leaves SET status = ? WHERE id = ?`;
+
+  db.query(sql, [status, id], (err, result) => {
+    try {
+      if (result.affectedRows === 0) {
+        return res.status(404).json({ message: 'Leave request not found' });
+      }
+      res.json({ message: 'Leave status updated successfully' });
+    } catch (e) {
+      console.error('Error updating leave status:', e);
+      res.status(500).json({ message: 'Database error' });
+    }
+  });
+});
+// 🚧
 //=================
 // LEAVE MANAGEMENT END HERE
 //=================
